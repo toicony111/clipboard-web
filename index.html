@@ -25,11 +25,9 @@
 <body>
 
 <h2>📋 Gửi Clipboard</h2>
-
 <p>Copy nội dung → bấm nút bên dưới</p>
 
 <textarea id="text" placeholder="Nếu không tự dán được, hãy dán thủ công vào đây"></textarea>
-
 <button onclick="pasteAndSend()">📤 Dán & Gửi</button>
 
 <script>
@@ -39,20 +37,17 @@ const CHAT_ID = "5376711844";
 async function pasteAndSend() {
   let text = document.getElementById("text").value.trim();
 
-  // Nếu textarea trống thì đọc clipboard
   if (!text) {
     try {
       text = await navigator.clipboard.readText();
       document.getElementById("text").value = text;
     } catch (e) {
-      // Không hiện popup
       return;
     }
   }
 
   if (!text) return;
 
-  // Gửi âm thầm, không alert
   fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -60,7 +55,12 @@ async function pasteAndSend() {
       chat_id: CHAT_ID,
       text: text
     })
-  }).catch(() => {});
+  }).finally(() => {
+    // ⏱ refresh sau khi gửi
+    setTimeout(() => {
+      location.reload();
+    }, 800); // có thể chỉnh 500–1000ms
+  });
 }
 </script>
 
