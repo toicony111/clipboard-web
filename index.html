@@ -26,29 +26,30 @@
 
 <h2>📋 Gửi Clipboard</h2>
 
-<p>1️⃣ Copy nội dung<br>2️⃣ Dán hoặc bấm nút Dán<br>3️⃣ Nhấn Gửi</p>
+<p>Copy nội dung → bấm nút bên dưới</p>
 
-<textarea id="text" placeholder="Dán nội dung vào đây"></textarea>
+<textarea id="text" placeholder="Nếu không tự dán được, hãy dán thủ công vào đây"></textarea>
 
-<button onclick="pasteClipboard()">📥 Dán Clipboard</button>
-<button onclick="sendTelegram()">📤 Gửi Telegram</button>
+<button onclick="pasteAndSend()">📤 Dán & Gửi</button>
 
 <script>
-const BOT_TOKEN = "8379215075:AAHfjpWkGkmXJoiya1mVJH8Nd1wCgXTtPs4";
-const CHAT_ID = "5376711844";
+const BOT_TOKEN = "TOKEN_BOT_CUA_BAN";
+const CHAT_ID = "CHAT_ID_CUA_BAN";
 
-function pasteClipboard() {
-  navigator.clipboard.readText()
-    .then(text => {
+async function pasteAndSend() {
+  let text = document.getElementById("text").value.trim();
+
+  // Nếu textarea trống thì thử đọc clipboard
+  if (!text) {
+    try {
+      text = await navigator.clipboard.readText();
       document.getElementById("text").value = text;
-    })
-    .catch(() => {
-      alert("Trình duyệt không cho phép đọc clipboard.\nHãy dán thủ công.");
-    });
-}
+    } catch (e) {
+      alert("Không thể đọc clipboard.\nHãy dán thủ công rồi bấm lại.");
+      return;
+    }
+  }
 
-function sendTelegram() {
-  const text = document.getElementById("text").value.trim();
   if (!text) {
     alert("Nội dung trống!");
     return;
@@ -59,7 +60,7 @@ function sendTelegram() {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       chat_id: CHAT_ID,
-      text: "📋 Clipboard:\n\n" + text
+      text: text   // 👈 CHỈ GỬI NỘI DUNG
     })
   })
   .then(() => alert("✅ Đã gửi"))
